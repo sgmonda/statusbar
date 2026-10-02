@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderElement, Timer } from 'claude-code'
+import type { EngineInterface, ProcessRunResult, Register, RenderElement, Timer } from 'claude-code'
 
 import type { Limit, Snapshot } from '../types'
 import {
@@ -41,27 +41,29 @@ const SPACING = {
   monospaced: { separator: '  ·  ', air: '', minGap: 2 },
 } as const
 
+/**
+ * Where the session runs, as git sees it. Three read-only git commands, each
+ * written out in full: the repository's directories, the branch, the short sha.
+ */
 const git = async ($: EngineInterface, cwd: string): Promise<GitFacts | null> => {
-  const run = (argv: string[]) =>
-    $.process.run(['git', ...argv], { cwd, timeoutMs: 5_000 }).catch(() => null)
+  const init = { cwd, timeoutMs: 5_000 }
+  const settle = (run: Promise<ProcessRunResult>) => run.catch(() => null)
 
-  const dirs = await run([
-    '--no-optional-locks',
-    'rev-parse',
-    '--path-format=absolute',
-    '--git-dir',
-    '--git-common-dir',
-    '--show-toplevel',
-  ])
+  const dirs = await settle(
+    $.process.run(
+      ['git', '--no-optional-locks', 'rev-parse', '--path-format=absolute', '--git-dir', '--git-common-dir', '--show-toplevel'],
+      init,
+    ),
+  )
   if (dirs === null || dirs.exitCode !== 0) return null
 
   const [gitDir, commonDir, topLevel] = dirs.stdout.trim().split('\n')
   // symbolic-ref answers on a branch with no commits yet; rev-parse covers a detached HEAD.
   const [branch, sha] = await Promise.all([
-    run(['--no-optional-locks', 'symbolic-ref', '--short', '-q', 'HEAD']),
-    run(['--no-optional-locks', 'rev-parse', '--short', 'HEAD']),
+    settle($.process.run(['git', '--no-optional-locks', 'symbolic-ref', '--short', '-q', 'HEAD'], init)),
+    settle($.process.run(['git', '--no-optional-locks', 'rev-parse', '--short', 'HEAD'], init)),
   ])
-  const ok = (r: typeof branch) => (r?.exitCode === 0 ? r.stdout.trim() || undefined : undefined)
+  const ok = (r: ProcessRunResult | null) => (r?.exitCode === 0 ? r.stdout.trim() || undefined : undefined)
 
   return { gitDir, commonDir, topLevel, branch: ok(branch), shortSha: ok(sha) }
 }

@@ -22,12 +22,8 @@
     "surfaces": {
       "type": "string",
       "title": "Where to show the bar",
-      "description": "desktop shows it only in the Claude Desktop Code tab, where the statusLine setting does not run; all shows it in the terminal too.",
-      "default": "desktop",
-      "options": [
-        "desktop",
-        "all"
-      ]
+      "description": "Where the bar shows: desktop (only in the Claude Desktop Code tab, where the statusLine setting does not run) or all (the terminal too). Any other value reads as desktop.",
+      "default": "desktop"
     },
     "showCost": {
       "type": "boolean",
