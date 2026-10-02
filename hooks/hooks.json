@@ -1,0 +1,4 @@
+{
+  "description": "Draws the session status bar above the prompt",
+  "modules": ["./register.tsx"]
+}

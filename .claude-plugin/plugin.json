@@ -1,0 +1,39 @@
+{
+  "name": "statusbar",
+  "displayName": "Status Bar",
+  "version": "0.1.0",
+  "description": "A session status bar for Claude Code Desktop: your 5-hour and weekly usage limits with time to reset, session and turn clocks, and running subagents, background tasks and scheduled wakeups (early access).",
+  "author": {
+    "name": "Sergio García Mondaray"
+  },
+  "homepage": "https://github.com/sgmonda/statusbar",
+  "repository": "https://github.com/sgmonda/statusbar",
+  "license": "MIT",
+  "keywords": [
+    "status",
+    "statusline",
+    "status-bar",
+    "desktop",
+    "usage",
+    "rate-limits"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "surfaces": {
+      "type": "string",
+      "title": "Where to show the bar",
+      "description": "desktop shows it only in the Claude Desktop Code tab, where the statusLine setting does not run; all shows it in the terminal too.",
+      "default": "desktop",
+      "options": [
+        "desktop",
+        "all"
+      ]
+    },
+    "showCost": {
+      "type": "boolean",
+      "title": "Show session cost",
+      "description": "Add the session's cost in USD, as /cost totals it.",
+      "default": false
+    }
+  }
+}
