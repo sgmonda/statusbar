@@ -8,7 +8,7 @@
     {
       "name": "statusbar",
       "source": "./",
-      "description": "A session status bar for Claude Code Desktop: your 5-hour and weekly usage limits with time to reset, session and turn clocks, and running subagents, background tasks and scheduled wakeups (early access).",
+      "description": "A session status bar for Claude Code Desktop: the repository, worktree and branch, your 5-hour and weekly usage limits with time to reset, session and turn clocks, and running subagents, background tasks and scheduled wakeups (early access).",
       "category": "productivity"
     }
   ]

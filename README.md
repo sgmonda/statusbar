@@ -5,6 +5,8 @@ setting only runs in the terminal; this plugin draws the same kind of line above
 the prompt in the desktop app:
 
 ```
+my-repo ▸ fix-login (feat/oauth)
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 SESSION  ████░░░░  ↻ 02h 15m    ·   WEEK  ██████░░  ↻ 3d 04h    ·   AGENTS 2        TOTAL TIME  01:23:05    ·   CURRENT  00:42
 ```
 
@@ -12,14 +14,16 @@ And in the terminal, with `surfaces: all`:
 
 ```
 my-repo ▸ fix-login (feat/oauth) · Opus 5.5 (ctx 42%)
+───────────────────────────────────────────────────────────────────────────────────────────────────────
 SESSION ████░░░░ ↻ 02h 15m  ·  WEEK ██████░░ ↻ 3d 04h  ·  AGENTS 2      TOTAL TIME 01:23:05  ·  CURRENT 00:42
 ```
 
+- **Where you are**, on a row of its own above, so a long branch never pushes the rest onto two lines: the repository, the worktree when the session runs in one, and the branch (or `@<sha>` on a detached HEAD).
 - **Usage limits**: your 5-hour session and weekly windows as bars that grow and shrink with the room the line leaves free, 4 to 20 cells (green below 50%, amber below 80%, red above), with the time until each resets. They appear on subscription plans once the first response has reported them.
 - **Time**, at the right edge: how long the session has run (`TOTAL TIME`, as `HH:MM:SS`) and the turn's clock (`CURRENT`): live while Claude works, the last turn's length, dimmed, between turns.
 - **Background activity**, only when there is some: running subagents (`AGENTS`), other background tasks such as shells, monitors and workflows (`TASKS`), and scheduled wakeups and cron tasks (`CRON`). Background tasks and wakeups are counted at the end of each turn.
 - **Cost** (optional): the session's cost in USD, as `/cost` totals it.
-- **In the terminal** (with `surfaces: all`) a row above adds the repository, worktree and branch, the model and the context fill, which Claude Desktop already shows around the prompt; the usage row below reads the same as on the desktop, spaced tighter for a monospaced font.
+- **In the terminal** (with `surfaces: all`) the top row adds the model and the context fill, which Claude Desktop already shows around the prompt; the usage row below reads the same as on the desktop, spaced tighter for a monospaced font.
 
 Figures are drawn in monospace so the clocks do not jitter as they tick: Claude
 Desktop's font is proportional and no element takes a font, so the bar uses

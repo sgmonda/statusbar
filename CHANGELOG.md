@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Claude Desktop shows the repository, worktree and branch too, on a row of their own above the usage row, so a long branch never pushes it onto two lines.
+- A faint rule between the two rows, as wide as the band, on every surface.
+
 ## 0.1.0
 
 First release.

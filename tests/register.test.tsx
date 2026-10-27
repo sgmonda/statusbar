@@ -66,13 +66,13 @@ const fakeSession = (on: On) => {
 const measure = ($: Engine) =>
   $.session.measure({ context: USAGE.context, rateLimits: USAGE.rateLimits, changed: ['context'] })
 
-test('draws only the limits on desktop, leaving repo, model and context to the app', async ($, on) => {
+test('on desktop, the checkout and branch sit above the limits; model and context are left to the app', async ($, on) => {
   fakeSession(on)
   await measure($)
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
-  expect(await ui.find({ type: 'Text', text: /^app$/ })).toBeUndefined()
-  expect(await ui.find({ type: 'Text', text: /^main$/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^app$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^main$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /Opus/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /ctx/ })).toBeUndefined()
 
@@ -82,15 +82,17 @@ test('draws only the limits on desktop, leaving repo, model and context to the a
   expect(await ui.find({ type: 'Text', text: exactly('02h 15m') })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: exactly('3d 04h') })).toBeDefined()
 
-  // SESSION leads, then WEEK; TOTAL TIME and CURRENT apart at the right, a wide separator within each side.
+  // The checkout leads, then SESSION and WEEK; TOTAL TIME and CURRENT apart at the right, a wide separator within each side.
   const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text)
-  expect(texts.indexOf('SESSION ')).toBe(1)
+  expect(texts.indexOf('app')).toBeLessThan(texts.indexOf('SESSION '))
   expect(texts.indexOf('SESSION ')).toBeLessThan(texts.indexOf('WEEK '))
   expect(texts.indexOf('WEEK ')).toBeLessThan(texts.indexOf('TOTAL TIME '))
   expect(texts.indexOf('TOTAL TIME ')).toBeLessThan(texts.indexOf('CURRENT '))
   expect(texts.filter(t => t === '   ·   ')).toHaveLength(2)
   const drawn = await ui.drawn()
-  expect(drawn).toMatchObject({ type: 'Box', props: { justifyContent: 'space-between' } })
+  expect(drawn).toMatchObject({ type: 'Box', props: { flexDirection: 'column' } })
+  const usage = drawn.type === 'Box' ? drawn.children?.[2] : undefined
+  expect(usage).toMatchObject({ type: 'Box', props: { justifyContent: 'space-between' } })
   expect(await ui.find({ type: 'Text', text: /\$/ })).toBeUndefined()
   await ui.unmount()
 })
@@ -196,7 +198,8 @@ test('bars share out the free room: shortest when narrow, longest when wide, the
   expect(a).toBe(b)
   expect(a).toBeGreaterThan(4)
   expect(a).toBeLessThan(20)
-  const width = widthOf(await fitted.drawn())
+  const tree = await fitted.drawn()
+  const width = widthOf(tree.type === 'Box' ? tree.children?.[2] : undefined)
   expect(width).toBeLessThanOrEqual(120 - 4)
   expect(width).toBeGreaterThan(120 - 4 - 2)
   await fitted.unmount()
@@ -216,20 +219,21 @@ test('bars and clocks have a space of air on each side', async ($, on) => {
   await ui.unmount()
 })
 
-test('in the terminal, the session facts take a row of their own above the usage row', { options: { surfaces: 'all' } }, async ($, on) => {
+test('the session facts take a row of their own above the usage row, on every surface', { options: { surfaces: 'all' } }, async ($, on) => {
   fakeSession(on)
   await measure($)
 
   const terminal = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const desktop = await $.ui.mount({ ...BAND, surface: 'desktop' })
   const [termTree, deskTree] = [await terminal.drawn(), await desktop.drawn()]
-  expect(termTree).toMatchObject({ type: 'Box', props: { flexDirection: 'column' } })
-
-  // The usage row is the terminal's second row, laid out as the desktop's only one, and both fit the band.
-  const usage = termTree.type === 'Box' ? termTree.children?.[1] : undefined
-  expect(usage).toMatchObject({ type: 'Box', props: { justifyContent: 'space-between' } })
-  expect(widthOf(usage)).toBeLessThanOrEqual(120)
-  expect(widthOf(deskTree)).toBeLessThanOrEqual(120)
+  for (const tree of [termTree, deskTree]) {
+    expect(tree).toMatchObject({ type: 'Box', props: { flexDirection: 'column' } })
+    // A rule, then the usage row, laid out the same on both, fitting the band.
+    expect(tree.type === 'Box' ? tree.children?.[1] : undefined).toMatchObject({ type: 'Box', props: { overflow: 'hidden' } })
+    const usage = tree.type === 'Box' ? tree.children?.[2] : undefined
+    expect(usage).toMatchObject({ type: 'Box', props: { justifyContent: 'space-between' } })
+    expect(widthOf(usage)).toBeLessThanOrEqual(120)
+  }
   await terminal.unmount()
   await desktop.unmount()
 })

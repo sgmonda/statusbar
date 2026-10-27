@@ -31,6 +31,10 @@ const CLOCK_TICK_MS = 1_000
 /** While a turn runs, the running subagents are counted every few seconds. */
 const AGENTS_TICK_MS = 5_000
 
+/** The line between the session facts and the usage row. */
+const RULE = '─'
+const RULE_FALLBACK_CELLS = 200
+
 /**
  * The room around separators, bars and clocks. A proportional font (the desktop)
  * draws spaces narrow, so it takes more of them; a monospaced one (the terminal)
@@ -171,8 +175,8 @@ export const register: Register = (on, options) => {
 
     const { Box, Text } = $.ui.resolve(e)
     const { place } = snap
-    // Desktop already shows the repo, branch, model and context fill around the prompt.
-    const showSessionFacts = e.surface !== 'desktop'
+    // Desktop already shows the model and context fill around the prompt.
+    const showModel = e.surface !== 'desktop'
 
     // The terminal is monospaced already; elsewhere figures switch to monospace glyphs so they do not jitter.
     const figures = e.surface === 'terminal' ? (text: string) => text : mono
@@ -219,16 +223,16 @@ export const register: Register = (on, options) => {
       )
     }
 
-    const facts = showSessionFacts ? (
+    const facts = (
       <Text key="facts">
         {head}
-        {snap.model ? <Text dimColor> · </Text> : null}
-        {snap.model ? <Text>{snap.model}</Text> : null}
-        {snap.contextPercent !== undefined ? (
+        {showModel && snap.model ? <Text dimColor> · </Text> : null}
+        {showModel && snap.model ? <Text>{snap.model}</Text> : null}
+        {showModel && snap.contextPercent !== undefined ? (
           <Text dimColor> (ctx {Math.round(snap.contextPercent)}%)</Text>
         ) : null}
       </Text>
-    ) : null
+    )
     const isTurnRunning = e.props.isWorking && turnStart !== null
 
     const leftOf = (cells: number) => [
@@ -269,13 +273,33 @@ export const register: Register = (on, options) => {
       </Box>
     )
 
-    // Where the session facts show (the terminal), they take a row of their own above,
-    // so the usage row reads the same on every surface and keeps the whole width.
-    return facts === null ? (
-      usageRow
-    ) : (
+    // A rule between the rows, as wide as the band. The terminal gives `─` one
+    // cell, so a full count fits exactly. A proportional font (the desktop) draws
+    // it wider by a measure no element reports, so there the rule runs long in a
+    // Box out of the flow, as wide as it needs not to wrap, and its row clips it
+    // at the edge: a truncated Text would end in an ellipsis.
+    const ruleColumns = e.props.bodyColumns ?? RULE_FALLBACK_CELLS
+    const ruleText = (cells: number) => <Text color="subtle" dimColor>{RULE.repeat(cells)}</Text>
+    const rule =
+      e.surface === 'terminal' ? (
+        <Box key="rule" width="100%" height={1} overflow="hidden">
+          {ruleText(ruleColumns)}
+        </Box>
+      ) : (
+        <Box key="rule" position="relative" width="100%" height={1} overflow="hidden">
+          <Text> </Text>
+          <Box position="absolute" top={0} left={0} width={ruleColumns * 4}>
+            {ruleText(ruleColumns * 2)}
+          </Box>
+        </Box>
+      )
+
+    // The session facts take a row of their own above, so a long branch never
+    // pushes the usage row onto two lines, and that row keeps the whole width.
+    return (
       <Box flexDirection="column" width="100%">
         {facts}
+        {rule}
         {usageRow}
       </Box>
     )
