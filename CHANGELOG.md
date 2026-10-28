@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- On the desktop the empty part of a bar is a faint translucent grey, so the filled part stands out.
+
 ## 0.3.0
 
 - The worktree and the branch each carry an icon instead of `▸` and parentheses, so one is never read as the other. On the desktop they are SVG drawings, the same whatever the font; the terminal draws `◫` and `⎇`.

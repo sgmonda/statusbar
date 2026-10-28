@@ -58,6 +58,12 @@ const svgOf = (shapes: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="${ICON_COLOR}" ` +
   `stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${shapes}</svg>`
 
+/**
+ * The empty part of a desktop bar: a translucent grey, faint on a light or a
+ * dark theme alike, so the filled part stands out. No Box takes an opacity.
+ */
+const BAR_TRACK = 'rgba(128, 128, 128, 0.22)'
+
 /** The line between the session facts and the usage row. */
 const RULE = '─'
 const RULE_FALLBACK_CELLS = 200
@@ -274,7 +280,7 @@ export const register: Register = (on, options) => {
           </Text>
           <Box key={`${l.kind}-bar`} flexDirection="row" width={cells} minWidth={MIN_BAR_CELLS} flexShrink={1}>
             {run('filled', [...filled].length, levelColor(l.percentUsed))}
-            {run('empty', [...empty].length, 'subtle')}
+            {run('empty', [...empty].length, BAR_TRACK)}
           </Box>
           <Text>{tail}</Text>
         </Box>
