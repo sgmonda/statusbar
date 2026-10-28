@@ -164,7 +164,7 @@ export const register: Register = (on, options) => {
 
   on('turn.start', async ($, e, next) => {
     const result = await next(e)
-    // A subagent's turn starts inside the main one: the main turn's clock keeps running.
+    // Only the main loop raises `turn.start`; a subagent's run raises none, so it never starts the clock.
     if ((await read($, turnStartedAt)) === null) {
       const startedAt = await $.clock.now()
       await update($, turnStartedAt, () => startedAt)
