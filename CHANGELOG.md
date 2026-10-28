@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The session clock is labelled `TIME` instead of `TOTAL TIME`.
+
 ## 0.3.1
 
 - On the desktop the empty part of a bar is a faint translucent grey, so the filled part stands out.

@@ -308,7 +308,7 @@ export const register: Register = (on, options) => {
     ]
     // The clocks sit at the right edge, apart from the figures that change by the turn.
     const right = [
-      fact('time', 'TOTAL TIME', hmsOf(now - snap.startedAt), { isClock: true }),
+      fact('time', 'TIME', hmsOf(now - snap.startedAt), { isClock: true }),
       // Between turns, the last one's length, dimmed: it is not running.
       isTurnRunning
         ? fact('turn', 'CURRENT', clockOf(now - turnStart), { isClock: true })
