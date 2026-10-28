@@ -9,6 +9,7 @@ import {
   hmsOf,
   labelOf,
   levelColor,
+  MIN_BAR_CELLS,
   modelLabel,
   mono,
   placeOf,
@@ -30,6 +31,32 @@ const TICK_MS = 60_000
 const CLOCK_TICK_MS = 1_000
 /** While a turn runs, the running subagents are counted every few seconds. */
 const AGENTS_TICK_MS = 5_000
+
+/**
+ * Mark the worktree's name and the branch. The terminal is monospaced and draws
+ * the glyphs; the desktop draws these drawings, which no font can change.
+ */
+const ICONS = {
+  worktree: {
+    glyph: '◫',
+    alt: 'worktree',
+    svg: '<path d="M1.75 4.25v8.5h12.5v-7H8L6.5 3.25H1.75z"/>',
+  },
+  branch: {
+    glyph: '⎇',
+    alt: 'branch',
+    svg:
+      '<circle cx="4.5" cy="3.5" r="1.75"/><circle cx="4.5" cy="12.5" r="1.75"/>' +
+      '<circle cx="11.5" cy="5" r="1.75"/><path d="M4.5 5.25v5.5M11.5 6.75c0 3-7 2-7 4"/>',
+  },
+} as const
+/** The icons' size in CSS pixels, about a cap height of the band's text. */
+const ICON_PX = 12
+/** A mid grey that reads as dimmed on a light or a dark theme alike. */
+const ICON_COLOR = '#8b8b8b'
+const svgOf = (shapes: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="${ICON_COLOR}" ` +
+  `stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${shapes}</svg>`
 
 /** The line between the session facts and the usage row. */
 const RULE = '─'
@@ -193,45 +220,76 @@ export const register: Register = (on, options) => {
       </Text>
     )
 
-    const head = place.isRepo ? (
-      <Text>
-        <Text bold color="warning">{place.name}</Text>
-        {place.worktree ? <Text dimColor> ▸ </Text> : null}
-        {place.worktree ? <Text color="claude">{place.worktree}</Text> : null}
-        {place.branch ? <Text dimColor> (</Text> : null}
-        {place.branch ? <Text color="suggestion">{place.branch}</Text> : null}
-        {place.branch ? <Text dimColor>)</Text> : null}
-      </Text>
-    ) : (
-      <Text bold color="warning">{place.name}</Text>
-    )
+    const name = <Text key="name" bold color="warning">{place.name}</Text>
+    const marked = (icon: keyof typeof ICONS, value: string | undefined, color: string) => {
+      if (!value) return []
+      const { glyph, alt, svg } = ICONS[icon]
+      let mark = <Text key={`${icon}-icon`} dimColor>{glyph}</Text>
+      // Only the desktop's table has Svg; the terminal keeps the glyph.
+      if (e.surface === 'desktop') {
+        const { Svg } = $.ui.resolve(e)
+        mark = <Svg key={`${icon}-icon`} source={svgOf(svg)} alt={alt} width={ICON_PX} height={ICON_PX} />
+      }
+      return [
+        <Text key={`${icon}-gap`}>{'  '}</Text>,
+        mark,
+        <Text key={`${icon}-air`}> </Text>,
+        <Text key={`${icon}-name`} color={color}>{value}</Text>,
+      ]
+    }
+    const head = place.isRepo
+      ? [name, ...marked('worktree', place.worktree, 'claude'), ...marked('branch', place.branch, 'suggestion')]
+      : [name]
 
     const limit = (l: Limit, cells: number) => {
       const [filled, empty] = barOf(l.percentUsed, cells)
       const left = remainingOf(l.resetsAt, now)
+      const tail = [
+        AIR,
+        left ? <Text key="reset" dimColor> ↻ </Text> : null,
+        left ? <Text key="left" dimColor>{figures(left)}</Text> : null,
+        left ? AIR : null,
+      ]
+      if (e.surface === 'terminal') {
+        return (
+          <Text key={l.kind}>
+            {label(labelOf(l.kind))}
+            {AIR}
+            <Text color={levelColor(l.percentUsed)}>{filled}</Text>
+            <Text dimColor>{empty}</Text>
+            {tail}
+          </Text>
+        )
+      }
+      // A proportional font draws █ and ░ as it likes; theme-coloured boxes look the same in any.
+      // The cell count is only an estimate there, so the bar may shrink to the minimum
+      // rather than push the clocks onto a second row.
+      const run = (key: string, cells: number, color: string) =>
+        cells > 0 ? <Box key={key} flexGrow={cells} width={0} height={1} backgroundColor={color} /> : null
       return (
-        <Text key={l.kind}>
-          {label(labelOf(l.kind))}
-          {AIR}
-          <Text color={levelColor(l.percentUsed)}>{filled}</Text>
-          <Text dimColor>{empty}</Text>
-          {AIR}
-          {left ? <Text dimColor> ↻ </Text> : null}
-          {left ? <Text dimColor>{figures(left)}</Text> : null}
-          {left ? AIR : null}
-        </Text>
+        <Box key={l.kind} flexDirection="row" flexShrink={1}>
+          <Text>
+            {label(labelOf(l.kind))}
+            {AIR}
+          </Text>
+          <Box key={`${l.kind}-bar`} flexDirection="row" width={cells} minWidth={MIN_BAR_CELLS} flexShrink={1}>
+            {run('filled', [...filled].length, levelColor(l.percentUsed))}
+            {run('empty', [...empty].length, 'subtle')}
+          </Box>
+          <Text>{tail}</Text>
+        </Box>
       )
     }
 
     const facts = (
-      <Text key="facts">
+      <Box key="facts" flexDirection="row" alignItems="center">
         {head}
         {showModel && snap.model ? <Text dimColor> · </Text> : null}
         {showModel && snap.model ? <Text>{snap.model}</Text> : null}
         {showModel && snap.contextPercent !== undefined ? (
           <Text dimColor> (ctx {Math.round(snap.contextPercent)}%)</Text>
         ) : null}
-      </Text>
+      </Box>
     )
     const isTurnRunning = e.props.isWorking && turnStart !== null
 
@@ -262,12 +320,20 @@ export const register: Register = (on, options) => {
     const fixed = widthOf(joined('left', leftOf(0))) + widthOf(joined('right', right)) + spacing.minGap
     const cells = barCellsFor(e.props.bodyColumns, fixed, snap.limits.length)
 
+    // On the desktop the bars give way first; the row wraps only once they are at their shortest.
+    const isShrinkable = e.surface !== 'terminal' && cells > MIN_BAR_CELLS
     const usageRow = (
-      <Box key="usage" flexDirection="row" flexWrap="wrap" justifyContent="space-between" width="100%">
-        <Box key="left" flexDirection="row" flexWrap="wrap">
+      <Box
+        key="usage"
+        flexDirection="row"
+        flexWrap={isShrinkable ? 'nowrap' : 'wrap'}
+        justifyContent="space-between"
+        width="100%"
+      >
+        <Box key="left" flexDirection="row" flexWrap={isShrinkable ? 'nowrap' : 'wrap'} flexShrink={1}>
           {joined('left', leftOf(cells))}
         </Box>
-        <Box key="right" flexDirection="row">
+        <Box key="right" flexDirection="row" flexShrink={0}>
           {joined('right', right)}
         </Box>
       </Box>

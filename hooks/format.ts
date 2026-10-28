@@ -43,6 +43,8 @@ export const widthOf = (node: RenderNode | readonly RenderNode[] | null | undefi
   if (node === null || node === undefined || node === false) return 0
   if (typeof node === 'string' || typeof node === 'number') return [...String(node)].length
   if (Array.isArray(node)) return node.reduce((sum: number, child) => sum + widthOf(child), 0)
+  // A Box given a width in cells, as a bar is, takes that many whatever it holds.
+  if ('type' in node && node.type === 'Box' && typeof node.props?.width === 'number') return node.props.width
   return 'children' in node && node.children ? widthOf(node.children) : 0
 }
 
@@ -105,7 +107,7 @@ export type GitFacts = {
 }
 
 /**
- * The bar's head: `<repo> ▸ <worktree> (<branch>)`, `<repo> (<branch>)`, or
+ * The bar's head: `<repo> ◫ <worktree> ⎇ <branch>`, `<repo> ⎇ <branch>`, or
  * `<parent>/<dir>` outside a repository. Mirrors the terminal status line.
  */
 export const placeOf = (cwd: string, git: GitFacts | null): Place => {

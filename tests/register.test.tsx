@@ -73,12 +73,16 @@ test('on desktop, the checkout and branch sit above the limits; model and contex
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
   expect(await ui.find({ type: 'Text', text: /^app$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^main$/ })).toBeDefined()
+  // The branch's icon is a drawing there, not a glyph a font could change.
+  expect((await ui.findAll({ type: 'Svg' })).map(svg => svg.props.alt)).toEqual(['branch'])
+  expect(await ui.find({ type: 'Text', text: /⎇/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /Opus/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /ctx/ })).toBeUndefined()
 
-  const [session, week] = await ui.findAll({ type: 'Text', text: /^█+$/ })
-  expect(session?.props.color).toBe('success')
-  expect(week?.props.color).toBe('error')
+  // The bars are theme-coloured boxes there, not glyphs a font could change.
+  const filled = await ui.findAll({ type: 'Box', key: 'filled' })
+  expect(filled.map(box => box.props.backgroundColor)).toEqual(['success', 'error'])
+  expect(await ui.find({ type: 'Text', text: /[█░]/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: exactly('02h 15m') })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: exactly('3d 04h') })).toBeDefined()
 
@@ -174,11 +178,9 @@ test('counts running agents, background tasks and scheduled wakeups', async ($, 
   await busy.unmount()
 })
 
-/** Each bar's width in cells, filled and empty runs together, in drawing order. */
-const barWidths = async (ui: { findAll: (q: { type: string; text: RegExp }) => Promise<{ text: string }[]> }) => {
-  const runs = (await ui.findAll({ type: 'Text', text: /^[█░]+$/ })).map(t => [...t.text].length)
-  return [(runs[0] ?? 0) + (runs[1] ?? 0), (runs[2] ?? 0) + (runs[3] ?? 0)]
-}
+/** Each bar's width in cells, in drawing order. */
+const barWidths = async (ui: { findAll: (q: { type: string }) => Promise<{ key: string | undefined; props: Record<string, unknown> }[]> }) =>
+  (await ui.findAll({ type: 'Box' })).filter(box => box.key?.endsWith('-bar')).map(box => Number(box.props.width))
 
 test('bars share out the free room: shortest when narrow, longest when wide, the line fitting between', async ($, on) => {
   fakeSession(on)
@@ -210,8 +212,10 @@ test('bars and clocks have a space of air on each side', async ($, on) => {
   await measure($)
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
-  const session = await ui.find({ type: 'Text', text: /^SESSION / })
-  expect(session?.text).toMatch(new RegExp(`^SESSION  [█░]+  ↻ ${mono('02h 15m')} $`, 'u'))
+  // On the desktop the bar is boxes between the label and the reset time.
+  expect((await ui.find({ type: 'Text', text: /^SESSION / }))?.text).toBe('SESSION  ')
+  const [reset] = await ui.findAll({ type: 'Text', text: /↻/ })
+  expect(reset?.text).toBe(`  ↻ ${mono('02h 15m')} `)
   const total = await ui.find({ type: 'Text', text: /^TOTAL TIME / })
   expect(total?.text).toBe(`TOTAL TIME  ${mono('01:23:00')} `)
   const turn = await ui.find({ type: 'Text', text: /^CURRENT / })

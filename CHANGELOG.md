@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- The worktree and the branch each carry an icon instead of `▸` and parentheses, so one is never read as the other. On the desktop they are SVG drawings, the same whatever the font; the terminal draws `◫` and `⎇`.
+- On the desktop the usage bars are boxes in the theme's colours instead of `█` and `░`, so they look the same whatever the font.
+- On the desktop the bars shrink, down to 4 cells, before the clocks wrap onto a second row: the room a proportional font takes is only estimated.
+
 ## 0.2.0
 
 - Claude Desktop shows the repository, worktree and branch too, on a row of their own above the usage row, so a long branch never pushes it onto two lines.
