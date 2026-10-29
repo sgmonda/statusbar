@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.2
 
 - The session clock is labelled `TIME` instead of `TOTAL TIME`.
 
