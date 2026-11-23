@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - The context window's fill (`CONTEXT 42%`) sits at the right edge of the top row on every surface, green below 50%, amber below 80%, red above. In the terminal it replaces `(ctx 42%)` after the model.
 
