@@ -208,7 +208,7 @@ export const register: Register = (on, options) => {
 
     const { Box, Text } = $.ui.resolve(e)
     const { place } = snap
-    // Desktop already shows the model and context fill around the prompt.
+    // Desktop already shows the model around the prompt.
     const showModel = e.surface !== 'desktop'
 
     // The terminal is monospaced already; elsewhere figures switch to monospace glyphs so they do not jitter.
@@ -287,13 +287,27 @@ export const register: Register = (on, options) => {
       )
     }
 
+    // The context fill sits at the right edge of the session facts, coloured by how full it is.
+    const context =
+      snap.contextPercent !== undefined ? (
+        <Text key="context">
+          {label('CONTEXT')}
+          {AIR}
+          <Text color={levelColor(snap.contextPercent)}>{figures(`${Math.round(snap.contextPercent)}%`)}</Text>
+          {AIR}
+        </Text>
+      ) : null
     const facts = (
-      <Box key="facts" flexDirection="row" alignItems="center">
-        {head}
-        {showModel && snap.model ? <Text dimColor> · </Text> : null}
-        {showModel && snap.model ? <Text>{snap.model}</Text> : null}
-        {showModel && snap.contextPercent !== undefined ? (
-          <Text dimColor> (ctx {Math.round(snap.contextPercent)}%)</Text>
+      <Box key="facts" flexDirection="row" justifyContent="space-between" alignItems="center" width="100%">
+        <Box key="place" flexDirection="row" alignItems="center" flexShrink={1}>
+          {head}
+          {showModel && snap.model ? <Text dimColor> · </Text> : null}
+          {showModel && snap.model ? <Text>{snap.model}</Text> : null}
+        </Box>
+        {context ? (
+          <Box key="context" flexDirection="row" flexShrink={0}>
+            {context}
+          </Box>
         ) : null}
       </Box>
     )

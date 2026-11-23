@@ -7,6 +7,18 @@ import { mono, widthOf } from '../hooks/format'
 const exactly = (text: string) => new RegExp(`^${mono(text)}$`, 'u')
 import type { On, RenderElement, SessionUsage } from 'claude-code'
 
+/**
+ * The engine draws every plugin's part of the band, stacked in a column; this is
+ * statusbar's own, the one the tests look into.
+ */
+const ownPart = (tree: RenderElement): RenderElement | undefined => {
+  const parts = tree.type === 'Box' ? (tree.children ?? []) : [tree]
+  return parts.find(
+    (part): part is RenderElement =>
+      typeof part === 'object' && part !== null && 'part' in part && (part as { part?: { plugin?: string } }).part?.plugin === 'statusbar',
+  )
+}
+
 const NOW = Date.parse('2026-10-02T10:00:00Z')
 
 const USAGE: SessionUsage = {
@@ -66,7 +78,7 @@ const fakeSession = (on: On) => {
 const measure = ($: Engine) =>
   $.session.measure({ context: USAGE.context, rateLimits: USAGE.rateLimits, changed: ['context'] })
 
-test('on desktop, the checkout and branch sit above the limits; model and context are left to the app', async ($, on) => {
+test('on desktop, the checkout and branch sit above the limits; the model is left to the app', async ($, on) => {
   fakeSession(on)
   await measure($)
 
@@ -77,7 +89,8 @@ test('on desktop, the checkout and branch sit above the limits; model and contex
   expect((await ui.findAll({ type: 'Svg' })).map(svg => svg.props.alt)).toEqual(['branch'])
   expect(await ui.find({ type: 'Text', text: /⎇/ })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /Opus/ })).toBeUndefined()
-  expect(await ui.find({ type: 'Text', text: /ctx/ })).toBeUndefined()
+  // The context fill sits at the right of the session facts.
+  expect((await ui.find({ type: 'Text', text: /^CONTEXT / }))?.text).toBe(`CONTEXT  ${mono('42%')} `)
 
   // The bars are theme-coloured boxes there, not glyphs a font could change.
   const filled = await ui.findAll({ type: 'Box', key: 'filled' })
@@ -93,9 +106,9 @@ test('on desktop, the checkout and branch sit above the limits; model and contex
   expect(texts.indexOf('WEEK ')).toBeLessThan(texts.indexOf('TIME '))
   expect(texts.indexOf('TIME ')).toBeLessThan(texts.indexOf('CURRENT '))
   expect(texts.filter(t => t === '   ·   ')).toHaveLength(2)
-  const drawn = await ui.drawn()
+  const drawn = ownPart(await ui.drawn())
   expect(drawn).toMatchObject({ type: 'Box', props: { flexDirection: 'column' } })
-  const usage = drawn.type === 'Box' ? drawn.children?.[2] : undefined
+  const usage = drawn?.type === 'Box' ? drawn.children?.[2] : undefined
   expect(usage).toMatchObject({ type: 'Box', props: { justifyContent: 'space-between' } })
   expect(await ui.find({ type: 'Text', text: /\$/ })).toBeUndefined()
   await ui.unmount()
@@ -118,7 +131,7 @@ test('surfaces=all draws in the terminal too; showCost adds the cost', { options
   expect(await ui.find({ type: 'Text', text: /^app$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^main$/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /Opus 5\.5/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /ctx 42%/ })).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /^CONTEXT / }))?.text).toBe('CONTEXT 42%')
   expect(await ui.find({ type: 'Text', text: '$1.23' })).toBeDefined()
   await ui.unmount()
 })
@@ -200,8 +213,8 @@ test('bars share out the free room: shortest when narrow, longest when wide, the
   expect(a).toBe(b)
   expect(a).toBeGreaterThan(4)
   expect(a).toBeLessThan(20)
-  const tree = await fitted.drawn()
-  const width = widthOf(tree.type === 'Box' ? tree.children?.[2] : undefined)
+  const tree = ownPart(await fitted.drawn())
+  const width = widthOf(tree?.type === 'Box' ? tree.children?.[2] : undefined)
   expect(width).toBeLessThanOrEqual(120 - 4)
   expect(width).toBeGreaterThan(120 - 4 - 2)
   await fitted.unmount()
@@ -229,12 +242,12 @@ test('the session facts take a row of their own above the usage row, on every su
 
   const terminal = await $.ui.mount({ ...BAND, surface: 'terminal' })
   const desktop = await $.ui.mount({ ...BAND, surface: 'desktop' })
-  const [termTree, deskTree] = [await terminal.drawn(), await desktop.drawn()]
+  const [termTree, deskTree] = [ownPart(await terminal.drawn()), ownPart(await desktop.drawn())]
   for (const tree of [termTree, deskTree]) {
     expect(tree).toMatchObject({ type: 'Box', props: { flexDirection: 'column' } })
     // A rule, then the usage row, laid out the same on both, fitting the band.
-    expect(tree.type === 'Box' ? tree.children?.[1] : undefined).toMatchObject({ type: 'Box', props: { overflow: 'hidden' } })
-    const usage = tree.type === 'Box' ? tree.children?.[2] : undefined
+    expect(tree?.type === 'Box' ? tree.children?.[1] : undefined).toMatchObject({ type: 'Box', props: { overflow: 'hidden' } })
+    const usage = tree?.type === 'Box' ? tree.children?.[2] : undefined
     expect(usage).toMatchObject({ type: 'Box', props: { justifyContent: 'space-between' } })
     expect(widthOf(usage)).toBeLessThanOrEqual(120)
   }

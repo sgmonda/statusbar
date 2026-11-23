@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The context window's fill (`CONTEXT 42%`) sits at the right edge of the top row on every surface, green below 50%, amber below 80%, red above. In the terminal it replaces `(ctx 42%)` after the model.
+
 ## 0.3.2
 
 - The session clock is labelled `TIME` instead of `TOTAL TIME`.
